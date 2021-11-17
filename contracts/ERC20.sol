@@ -73,7 +73,7 @@ contract Token is Ownable, Stakeable
   
   function _mint(address account, uint256 amount) internal
   {
-    require(account != address(0), "DevToken: cannot mint to zero address");
+    require(account != address(0), "Token: cannot mint to zero address");
 
     _totalSupply += amount;
     _balances[account].available += amount;
@@ -94,9 +94,9 @@ contract Token is Ownable, Stakeable
 
   function _transfer(address sender, address recipient, uint256 amount) internal
   {
-    require(sender != address(0), "DevToken: transfer from zero address");
-    require(recipient != address(0), "DevToken: transfer to zero address");
-    require(_balances[sender].available >= amount, "DevToken: cant transfer more than your account holds");
+    require(sender != address(0), "Token: transfer from zero address");
+    require(recipient != address(0), "Token: transfer to zero address");
+    require(_balances[sender].available >= amount, "Token: cant transfer more than your account holds");
 
     _balances[sender].available -= amount;
     _balances[recipient].available += amount;
@@ -118,8 +118,8 @@ contract Token is Ownable, Stakeable
 
     function _approve(address owner, address spender, uint256 amount) internal
     {
-      require(owner != address(0), "DevToken: approve cannot be done from zero address");
-      require(spender != address(0), "DevToken: approve cannot be to zero address");
+      require(owner != address(0), "Token: approve cannot be done from zero address");
+      require(spender != address(0), "Token: approve cannot be to zero address");
       _allowances[owner][spender] = amount;
 
       emit Approval(owner,spender,amount);
@@ -127,7 +127,7 @@ contract Token is Ownable, Stakeable
 
     function transferFrom(address spender, address recipient, uint256 amount) external returns(bool)
     {
-      require(_allowances[spender][msg.sender] >= amount, "DevToken: You cannot spend that much on this account");
+      require(_allowances[spender][msg.sender] >= amount, "Token: You cannot spend that much on this account");
       _transfer(spender, recipient, amount);
       _approve(spender, msg.sender, _allowances[spender][msg.sender] - amount);
       return true;
@@ -135,7 +135,7 @@ contract Token is Ownable, Stakeable
     
     function stake(uint256 amount) external
     {
-      require(amount < _balances[msg.sender].available, "DevToken: Cannot stake more than you own");
+      require(amount < _balances[msg.sender].available, "Token: Cannot stake more than you own");
       _stake(amount);
       _balances[msg.sender].available -= amount;
       _balances[msg.sender].locked += amount;

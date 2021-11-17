@@ -1,15 +1,105 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Token contract", function () {
-  it("Deployment should assign the total supply of tokens to the owner", async function () {
-    const [owner] = await ethers.getSigners();
+describe("Token contract", function ()
+{
+  let Token;
+  let hardhatToken;
+  let owner;
+  let addr1;
+  let addr2;
+  let addr3;
 
-    const Token = await ethers.getContractFactory("Token");
+  beforeEach(async function () {
+    Token = await ethers.getContractFactory("Token");
+    [owner, addr1, addr2, addr3] = await ethers.getSigners();
+    hardhatToken = await Token.deploy("Colony", "COL", 0, 1000);
+  });
 
-    const hardhatToken = await Token.deploy("Colony", "COL", 0, 1000)
+  describe("Deployment", function () {
+    it("Should set the right owner", async function () {
+      expect(await hardhatToken.getOwner()).to.equal(owner.address);
+    });
 
-    const ownerBalance = await hardhatToken.balanceOf(owner.address);
-    expect(await hardhatToken.totalSupply()).to.equal(ownerBalance);
+    it("Should assign the total supply of tokens to the owner", async function () {
+      const ownerBalance = await hardhatToken.balanceOf(owner.address);
+      expect(await hardhatToken.totalSupply()).to.equal(ownerBalance);
+    });
+  });
+
+  describe("Ownable", function () {
+    it("Should transfer ownership from owner", async function () {
+      await hardhatToken.transferOwnership(addr1.address);
+      expect(await hardhatToken.getOwner()).to.equal(addr1.address);
+    });
+    it("Should fail transfer ownership if account is not owner", async function() {
+      await expect(hardhatToken.connect(addr1).transferOwnership(addr2.address)).to.be.revertedWith("Ownable: only owner can call this function");
+    });
+    it("Should renounce ownership", async function () {
+      await hardhatToken.renounceOwnership();
+      expect(await hardhatToken.getOwner()).to.equal("0x0000000000000000000000000000000000000000");
+    });
+    it("Should fail renounce ownership", async function() {
+      await expect(hardhatToken.connect(addr1).renounceOwnership()).to.be.revertedWith("Ownable: only owner can call this function");
+    });
+  });
+
+  describe("ERC20", function () {
+    it("Should return token params", async function () {
+      expect(await hardhatToken.name()).to.equal("Colony");
+      expect(await hardhatToken.symbol()).to.equal("COL");
+      expect(await hardhatToken.decimals()).to.equal(0);
+      expect(await hardhatToken.totalSupply()).to.equal(1000);
+    });
+
+    it("Should transfer tokens", async function () {
+      await hardhatToken.transfer(addr1.address, 200);
+      await hardhatToken.transfer(addr2.address, 150);
+      expect(await hardhatToken.balanceOf(owner.address)).to.equal(650);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
+      expect(await hardhatToken.connect(addr2).balanceOf(addr2.address)).to.equal(150);
+
+      await hardhatToken.connect(addr1).transfer(addr3.address, 100);
+      await hardhatToken.connect(addr2).transfer(addr3.address, 50);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(100);
+      expect(await hardhatToken.connect(addr2).balanceOf(addr2.address)).to.equal(100);
+      expect(await hardhatToken.connect(addr3).balanceOf(addr3.address)).to.equal(150);
+    });
+
+    it("Should fail transfer tokens", async function () {
+      await expect(hardhatToken.transfer("0x0000000000000000000000000000000000000000", 1)).to.be.revertedWith("Token: transfer to zero address");
+      await expect(hardhatToken.transfer(addr1.address, 1001)).to.be.revertedWith("Token: cant transfer more than your account holds");
+    });
+
+    it("Should approve tokens spending", async function () {
+      await hardhatToken.approve(addr1.address, 200);
+      await hardhatToken.approve(addr2.address, 150);
+      expect(await hardhatToken.connect(addr1).allowance(owner.address, addr1.address)).to.equal(200);
+      expect(await hardhatToken.connect(addr2).allowance(owner.address, addr2.address)).to.equal(150);
+    });
+
+    it("Should transferFrom", async function () {
+      await hardhatToken.approve(addr1.address, 200);
+      await hardhatToken.approve(addr2.address, 150);
+      await hardhatToken.connect(addr1).transferFrom(owner.address, addr1.address, 100);
+      await hardhatToken.connect(addr2).transferFrom(owner.address, addr2.address, 150);
+
+      expect(await hardhatToken.connect(addr1).balanceOf(owner.address)).to.equal(750);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(100);
+      expect(await hardhatToken.connect(addr2).balanceOf(addr2.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).allowance(owner.address, addr1.address)).to.equal(100);
+      expect(await hardhatToken.connect(addr2).allowance(owner.address, addr2.address)).to.equal(0);
+    });
+
+    it("Should fail transferFrom 1", async function () {
+      await hardhatToken.approve(addr1.address, 200);
+      await expect(hardhatToken.connect(addr1).transferFrom(owner.address, addr1.address, 201)).to.be.revertedWith("Token: You cannot spend that much on this account");
+    });
+
+    it("Should fail transferFrom 2", async function () {
+      await hardhatToken.approve(addr1.address, 1);
+      await hardhatToken.transfer(addr2.address, 1000);
+      await expect(hardhatToken.connect(addr1).transferFrom(owner.address, addr1.address, 1)).to.be.revertedWith("Token: cant transfer more than your account holds");
+    });
   });
 });
