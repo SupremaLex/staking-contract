@@ -23,7 +23,7 @@ contract Stakeable
     event Claimed(uint256 timestamp);
     event Withdrawed(uint256 amount, uint256 reward, uint256 timestamp);
     
-    uint256 internal APY = 8;
+    uint256 internal APY = 150;
     
     constructor()
     {
@@ -71,15 +71,23 @@ contract Stakeable
     
     function removeZeroStakes(Stake[] storage user_stakes) internal
     {
+        // Order of stakes is not preserved
         uint shift = 0;
         for (uint i = 0; i < user_stakes.length; ++i)
         {
-            if (user_stakes[i].amount == 0)
+            if (user_stakes[i].amount == 0 && i < user_stakes.length - shift)
             {
                 shift++;
-                Stake memory element = user_stakes[i];
-                user_stakes[i] = user_stakes[user_stakes.length - shift];
-                user_stakes[user_stakes.length - shift] = element;
+                for (;i != user_stakes.length - shift; ++shift)
+                {
+                    if (user_stakes[user_stakes.length - shift].amount != 0) 
+                    {
+                        Stake memory element = user_stakes[i];
+                        user_stakes[i] = user_stakes[user_stakes.length - shift];
+                        user_stakes[user_stakes.length - shift] = element;
+                        break;
+                    }
+                }
             }
         }
         
@@ -97,7 +105,7 @@ contract Stakeable
         uint256 reward = 0;
         for (uint i = 0; i < current_stakes.length; ++i)
         {
-            if (block.timestamp - current_stakes[i].claimedTime < 10 seconds)
+            if (block.timestamp - current_stakes[i].claimedTime < 1 days)
             {
                 continue;
             }
@@ -129,6 +137,7 @@ contract Stakeable
             }
             current_stakes[i].claimedTime = block.timestamp;
             current_stakes[i].claimedAmount = current_stakes[i].amount;
+            current_stakes[i].amount = 0;
         }
         emit Claimed(block.timestamp);
     }
