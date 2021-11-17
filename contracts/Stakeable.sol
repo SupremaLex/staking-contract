@@ -105,7 +105,7 @@ contract Stakeable
         uint256 reward = 0;
         for (uint i = 0; i < current_stakes.length; ++i)
         {
-            if (block.timestamp - current_stakes[i].claimedTime < 1 days)
+            if (current_stakes[i].claimedTime == 0 || block.timestamp - current_stakes[i].claimedTime < 1 days)
             {
                 continue;
             }
