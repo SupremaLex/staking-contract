@@ -146,7 +146,7 @@ describe("Token contract", function ()
 
       const stake = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimedAmount").value._hex);
+      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
       expect(staked).to.equal(0);
       expect(claimed).to.equal(300);
@@ -162,7 +162,7 @@ describe("Token contract", function ()
 
       const stake = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimedAmount").value._hex);
+      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
       expect(staked).to.equal(0);
       expect(claimed).to.equal(300);
@@ -178,7 +178,7 @@ describe("Token contract", function ()
 
       const stake = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimedAmount").value._hex);
+      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
       expect(staked).to.equal(150);
       expect(claimed).to.equal(150);
@@ -200,7 +200,7 @@ describe("Token contract", function ()
 
       const stake = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimedAmount").value._hex);
+      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
       expect(staked).to.equal(300);
       expect(claimed).to.equal(0);
@@ -236,7 +236,7 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).claimAndWithdraw(150);
 
       const stakeAfterClaim = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
-      const claimedTime = parseInt(Object.getOwnPropertyDescriptor(stakeAfterClaim, "claimedTime").value._hex);
+      const claimedTime = parseInt(Object.getOwnPropertyDescriptor(stakeAfterClaim, "claimed_time").value._hex);
 
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(150);
@@ -286,9 +286,9 @@ describe("Token contract", function ()
       const amount1AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake1AfterClaim, "amount").value._hex);
       const amount2AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake2AfterClaim, "amount").value._hex);
       const amount3AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake3AfterClaim, "amount").value._hex);
-      const claimedAmount1AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake1AfterClaim, "claimedAmount").value._hex);
-      const claimedAmount2AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake2AfterClaim, "claimedAmount").value._hex);
-      const claimedAmount3AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake3AfterClaim, "claimedAmount").value._hex);
+      const claimedAmount1AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake1AfterClaim, "claimed_amount").value._hex);
+      const claimedAmount2AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake2AfterClaim, "claimed_amount").value._hex);
+      const claimedAmount3AfterClaim = parseInt(Object.getOwnPropertyDescriptor(stake3AfterClaim, "claimed_amount").value._hex);
 
       expect(amount1AfterClaim).to.equal(0);
       expect(amount2AfterClaim).to.equal(75);
@@ -311,8 +311,8 @@ describe("Token contract", function ()
       const stake2AfterWithdraw = Object.getOwnPropertyDescriptor(stakesAfterWithdraw, 1).value;
       const amount1AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake1AfterWithdraw, "amount").value._hex);
       const amount2AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake2AfterWithdraw, "amount").value._hex);
-      const claimedAmount1AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake1AfterWithdraw, "claimedAmount").value._hex);
-      const claimedAmount2AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake2AfterWithdraw, "claimedAmount").value._hex);
+      const claimedAmount1AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake1AfterWithdraw, "claimed_amount").value._hex);
+      const claimedAmount2AfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stake2AfterWithdraw, "claimed_amount").value._hex);
 
       // Order of stakes is not preserved after withdraw
       expect(amount1AfterWithdraw).to.equal(150);
@@ -342,5 +342,6 @@ describe("Token contract", function ()
       const stakesAfterWithdraw = await hardhatToken.connect(addr1).getStakeSummary();
       expect(Object.keys(stakesAfterWithdraw).length).to.equal(1);
     });
+
   });
 });
