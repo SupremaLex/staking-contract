@@ -66,7 +66,7 @@ contract Stakeable
     
     function calculateStakeReward(Stake memory current_stake) internal view returns (uint256)
     {
-          return (((current_stake.claimed_time - current_stake.since) * 1e6/ 365 days) * current_stake.claimed_amount) * 1500 / 1000;
+          return (((current_stake.claimed_time - current_stake.since) / 365 days) * current_stake.claimed_amount) * 1500 / 1000;
     }
 
     function getStakeAmount(Stake[] memory user_stakes) pure internal returns (uint256)
@@ -92,9 +92,7 @@ contract Stakeable
                 {
                     if (user_stakes[user_stakes.length - shift].amount != 0) 
                     {
-                        Stake memory element = user_stakes[i];
                         user_stakes[i] = user_stakes[user_stakes.length - shift];
-                        user_stakes[user_stakes.length - shift] = element;
                         break;
                     }
                 }
