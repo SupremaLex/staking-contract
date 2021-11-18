@@ -135,7 +135,7 @@ contract Token is Ownable, Stakeable
     
     function stake(uint256 amount) external
     {
-      require(amount < _balances[msg.sender].available, "Token: Cannot stake more than you own");
+      require(amount <= _balances[msg.sender].available, "Token: Cannot stake more than you own");
       _stake(amount);
       _balances[msg.sender].available -= amount;
       _balances[msg.sender].locked += amount;
