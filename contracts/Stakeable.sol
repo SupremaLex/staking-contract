@@ -27,7 +27,8 @@ contract Stakeable
     event Withdrawed(uint256 amount, uint256 reward, uint256 timestamp);
     
     uint256 internal APY = 150;
-    uint256 internal YEAR = 365 days;
+    // lets assume that year has 365 days
+    uint256 internal YEAR = 365 * 24;
     
     constructor()
     {
@@ -70,8 +71,8 @@ contract Stakeable
     
     function calculateStakeReward(Stake memory current_stake) internal view returns (uint256)
     {
-        // let assume that all years consist of 365 days
-        return PRBMathUD60x18.mul(PRBMathUD60x18.mul(PRBMathUD60x18.div(current_stake.claimed_time - current_stake.since, YEAR), PRBMathUD60x18.div(APY, 1000)), current_stake.claimed_amount);
+        uint256 stake_duration_hours = PRBMathUD60x18.floor(PRBMathUD60x18.div(current_stake.claimed_time - current_stake.since, 1 hours));
+        return PRBMathUD60x18.mul(PRBMathUD60x18.mul(PRBMathUD60x18.div(stake_duration_hours, YEAR), PRBMathUD60x18.div(APY, 1000)), current_stake.claimed_amount);
     }
 
     function getStakeAmount(Stake[] memory user_stakes) pure internal returns (uint256)

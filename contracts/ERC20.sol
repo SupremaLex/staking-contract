@@ -160,7 +160,7 @@ contract Token is Ownable, Stakeable
        (uint256 amount, uint256 reward) = _withdraw();
       _balances[msg.sender].available += amount;
       _balances[msg.sender].claimed -= amount;
-      _mint(msg.sender, reward);
+      _mint(msg.sender, reward / 1e18);
     }
 
 }

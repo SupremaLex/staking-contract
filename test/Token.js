@@ -252,8 +252,8 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw();
 
-      // reward 23(should be 22.5)
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(373);
+      // reward 22(ceil(22.5))
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(372);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
 
@@ -312,8 +312,9 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw();
 
-      // reward 12(should be 11.25)
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(287);
+      // reward 11(exact 11.25)
+      expect(await hardhatToken.totalSupply()).to.equal(1011);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(286);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(225);
 
@@ -350,8 +351,9 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw(); // first three stakes should be removed from array
 
-      // reward 46(should be 45)
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(396);
+      // reward 45
+      expect(await hardhatToken.totalSupply()).to.equal(1045);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(395);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
 
@@ -375,8 +377,9 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw();
 
-      // reward 38(should be 37.5)
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(288);
+      // reward 37(exact 37.5)
+      expect(await hardhatToken.totalSupply()).to.equal(1037);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(287);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(250);
 
@@ -391,8 +394,9 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw();
 
-      // reward 38(should be 37.5)
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(576);
+      // reward 37(exact 37.5)
+      expect(await hardhatToken.totalSupply()).to.equal(1074);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(574);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
     });
