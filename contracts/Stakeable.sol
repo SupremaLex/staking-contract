@@ -1,8 +1,11 @@
 pragma solidity 0.8.4;
 
+import "prb-math/contracts/PRBMathUD60x18.sol";
+
 contract Stakeable
 {
-    
+    using PRBMathUD60x18 for uint256;
+
     struct Stake
     {
         uint256 amount;
@@ -66,7 +69,8 @@ contract Stakeable
     
     function calculateStakeReward(Stake memory current_stake) internal view returns (uint256)
     {
-          return (((current_stake.claimed_time - current_stake.since) / 365 days) * current_stake.claimed_amount) * 1500 / 1000;
+        // let assume that all years consist of 365 days
+        return PRBMathUD60x18.mul(PRBMathUD60x18.mul(PRBMathUD60x18.div(current_stake.claimed_time - current_stake.since, 365 days), PRBMathUD60x18.div(15, 100)), current_stake.claimed_amount);
     }
 
     function getStakeAmount(Stake[] memory user_stakes) pure internal returns (uint256)
