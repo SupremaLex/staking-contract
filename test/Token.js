@@ -233,6 +233,11 @@ describe("Token contract", function ()
     it("Should withdraw part stake", async function () {
       await hardhatToken.transfer(addr1.address, 500);
       await hardhatToken.connect(addr1).stake(300);
+
+      // 1 year stake
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
       await hardhatToken.connect(addr1).claimAndWithdraw(150);
 
       const stakeAfterClaim = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
@@ -247,7 +252,8 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).withdraw();
 
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(350);
+      // reward 23(should be 22.5)
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(373);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
 
@@ -277,7 +283,14 @@ describe("Token contract", function ()
       expect(amount2).to.equal(100);
       expect(amount3).to.equal(150);
 
+      // 1 year stake
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
       await hardhatToken.connect(addr1).claimAndWithdraw(75);
+
+      await ethers.provider.send('evm_increaseTime', [86400]); 
+      await ethers.provider.send('evm_mine');
 
       const stakesAfterClaim = await hardhatToken.connect(addr1).getStakeSummary();
       const stake1AfterClaim = Object.getOwnPropertyDescriptor(stakesAfterClaim, 0).value;
@@ -297,12 +310,10 @@ describe("Token contract", function ()
       expect(claimedAmount2AfterClaim).to.equal(25);
       expect(claimedAmount3AfterClaim).to.equal(0);
 
-      await ethers.provider.send('evm_increaseTime', [8640000]); 
-      await ethers.provider.send('evm_mine');
-
       await hardhatToken.connect(addr1).withdraw();
 
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(275);
+      // reward 12(should be 11.25)
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(287);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(225);
 
@@ -328,14 +339,19 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(150);
       await hardhatToken.connect(addr1).stake(150);
 
+      // 1 year
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
       await hardhatToken.connect(addr1).claimAndWithdraw(300);
 
-      await ethers.provider.send('evm_increaseTime', [8640000]); 
+      await ethers.provider.send('evm_increaseTime', [86400]); 
       await ethers.provider.send('evm_mine');
 
       await hardhatToken.connect(addr1).withdraw(); // first three stakes should be removed from array
 
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(350);
+      // reward 46(should be 45)
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(396);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
 
@@ -343,5 +359,42 @@ describe("Token contract", function ()
       expect(Object.keys(stakesAfterWithdraw).length).to.equal(1);
     });
 
+    it("Should withdraw part stake and continue staking", async function () {
+      await hardhatToken.transfer(addr1.address, 500);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(500);
+      await hardhatToken.connect(addr1).stake(500);
+
+      // 1 year
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).claimAndWithdraw(250);
+
+      await ethers.provider.send('evm_increaseTime', [86400]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).withdraw();
+
+      // reward 38(should be 37.5)
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(288);
+      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(250);
+
+      // one more year stake of 250 tokens
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).claim();
+
+      await ethers.provider.send('evm_increaseTime', [86400]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).withdraw();
+
+      // reward 38(should be 37.5)
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(576);
+      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+    });
   });
 });
