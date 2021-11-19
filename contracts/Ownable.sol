@@ -21,13 +21,12 @@ contract Ownable
     function getOwner() public view returns(address)
     {
         return _owner;
-
     }
 
     function renounceOwnership() public onlyOwner
     {
-        emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
+        emit OwnershipTransferred(_owner, address(0));
     }
 
 
@@ -38,7 +37,7 @@ contract Ownable
 
     function _transferOwnership(address newOwner) internal
     {
-        emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
+        emit OwnershipTransferred(_owner, newOwner);
     }
 }

@@ -9,7 +9,7 @@ contract Stakeable
     struct Stake
     {
         uint256 amount;
-        uint256 since;
+        uint256 start_time;
         uint256 claimed_amount;
         uint256 claimed_time;
     }
@@ -71,7 +71,7 @@ contract Stakeable
     
     function calculateStakeReward(Stake memory current_stake) internal view returns (uint256)
     {
-        uint256 stake_duration_hours = PRBMathUD60x18.floor(PRBMathUD60x18.div(current_stake.claimed_time - current_stake.since, 1 hours));
+        uint256 stake_duration_hours = PRBMathUD60x18.floor(PRBMathUD60x18.div(current_stake.claimed_time - current_stake.start_time, 1 hours));
         return PRBMathUD60x18.mul(PRBMathUD60x18.mul(PRBMathUD60x18.div(stake_duration_hours, YEAR), PRBMathUD60x18.div(APY, 1000)), current_stake.claimed_amount);
     }
 
@@ -130,7 +130,7 @@ contract Stakeable
             
             if (current_stakes[i].amount > 0)
             {
-                current_stakes[i].since = current_stakes[i].claimed_time;
+                current_stakes[i].start_time = current_stakes[i].claimed_time;
                 current_stakes[i].claimed_time = 0;
             }
         }

@@ -259,7 +259,7 @@ describe("Token contract", function ()
 
       const stake = Object.getOwnPropertyDescriptor(await hardhatToken.connect(addr1).getStakeSummary(), 0).value;
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const since = parseInt(Object.getOwnPropertyDescriptor(stake, "since").value._hex);
+      const since = parseInt(Object.getOwnPropertyDescriptor(stake, "start_time").value._hex);
 
       expect(staked).to.equal(150);
       expect(since).to.equal(claimedTime);
