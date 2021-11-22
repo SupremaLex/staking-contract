@@ -127,7 +127,7 @@ contract Stakeable
         uint256 user_index = stakes[msg.sender];
         Stake storage current_stake = stakeholders[user_index].stake;
         require(current_stake.amount >= amount, "Staking: Cannot withdraw more than you have staked");
-        
+
         if (current_stake.claimed_time == 0)
         {
             current_stake.claimed_time = block.timestamp;

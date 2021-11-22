@@ -134,7 +134,7 @@ describe("Token contract", function ()
       await expect(hardhatToken.connect(addr1).stake(0)).to.be.revertedWith("Cannot stake nothing");
     });
 
-    it("Should fail stke during claim period", async function () {
+    it("Should fail stake during claim period", async function () {
       await hardhatToken.transfer(addr1.address, 500);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(500);
       await hardhatToken.connect(addr1).stake(200);
@@ -359,6 +359,42 @@ describe("Token contract", function ()
       // reward 37(exact 37.5)
       expect(await hardhatToken.totalSupply()).to.equal(1074);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(574);
+      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+    });
+
+    it("Should calculate 'inter staking' reward and withdraw it", async function () {
+      await hardhatToken.transfer(addr1.address, 500);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(500);
+      await hardhatToken.connect(addr1).stake(100);
+
+      // 1 year
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).stake(100);
+
+      const stake = await hardhatToken.connect(addr1).getStakeSummary();
+      const amount = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
+      const reward = parseInt(Object.getOwnPropertyDescriptor(stake, "accumulated_reward").value._hex);
+
+      expect(amount).to.equal(200);
+      expect(reward).to.equal(15000000000000000000); // 15
+
+      // 1 year
+      await ethers.provider.send('evm_increaseTime', [31536000]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).claim();
+
+      await ethers.provider.send('evm_increaseTime', [86400]); 
+      await ethers.provider.send('evm_mine');
+
+      await hardhatToken.connect(addr1).withdraw();
+
+      // reward 30
+      expect(await hardhatToken.totalSupply()).to.equal(1045);
+      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(545);
       expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
       expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
     });
