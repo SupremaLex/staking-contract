@@ -23,7 +23,7 @@ contract Stakeable
     
     Stakeholder[] internal stakeholders;
     mapping(address => uint256) internal stakes;
-    event Staked(address indexed user, uint256 amount, uint256 index, uint256 timestamp);
+    event Staked(address indexed user, uint256 amount, uint256 timestamp);
     event Claimed(uint256 amount, uint256 timestamp);
     event Withdrawed(uint256 amount, uint256 reward, uint256 timestamp);
     
@@ -52,6 +52,7 @@ contract Stakeable
         {
             stakeholders[user_index] = stakeholders[stakeholders.length - 1];
             stakeholders.pop();
+            stakes[staker] = 0;
         }
     }
     
@@ -69,7 +70,6 @@ contract Stakeable
         stakeholders[index].stake.accumulated_reward = calculateStakeReward(timestamp, stakeholders[index].stake.start_time, stakeholders[index].stake.amount);
         stakeholders[index].stake.amount += amount;
         stakeholders[index].stake.start_time = timestamp;
-        emit Staked(msg.sender, amount, index, timestamp);
     }
     
     function calculateStakeReward(uint256 end_time, uint256 start_time, uint256 amount) internal view returns (uint256)
@@ -78,17 +78,13 @@ contract Stakeable
         return PRBMathUD60x18.mul(PRBMathUD60x18.mul(PRBMathUD60x18.div(stake_duration_hours, YEAR), PRBMathUD60x18.div(APY, 1000)), amount);
     }
     
-    function _withdraw() internal returns (uint256, uint256)
+    function _withdraw() internal isStaker(msg.sender) returns (uint256, uint256)
     {
         uint256 user_index = stakes[msg.sender];
         Stake storage stake = stakeholders[user_index].stake;
+        require(stake.claimed_time != 0 && block.timestamp - stake.claimed_time >= 1 days, "Staking : Can't withdraw unclaimed stake");
 
-        if (stake.claimed_time == 0 || block.timestamp - stake.claimed_time < 1 days)
-        {
-            return (0, 0);
-        }
-
-        uint256 reward = calculateStakeReward(stake.claimed_time, stake.start_time, stake.claimed_amount) + stake.accumulated_reward;
+        uint256 reward = stake.accumulated_reward;
         stake.accumulated_reward = 0;
         uint256 withdrawed = stake.claimed_amount;
         stake.claimed_amount = 0;
@@ -104,44 +100,46 @@ contract Stakeable
             _removeStakeholder(msg.sender);
         }
 
-        emit Withdrawed(withdrawed, reward, block.timestamp);
         return (withdrawed, reward);
      }
     
-    function _claim() internal
+    function _claim() internal isStaker(msg.sender)
     {
         uint256 user_index = stakes[msg.sender];
-        Stake storage current_stake = stakeholders[user_index].stake;
-        if (current_stake.claimed_time == 0)
+        Stake storage stake = stakeholders[user_index].stake;
+        if (stake.claimed_time == 0)
         {
-            current_stake.claimed_time = block.timestamp;
-            current_stake.claimed_amount = current_stake.amount;
-            current_stake.amount = 0;
+            stake.claimed_time = block.timestamp;
+            stake.claimed_amount = stake.amount;
+            stake.amount = 0;
+            stake.accumulated_reward += calculateStakeReward(stake.claimed_time, stake.start_time, stake.claimed_amount);
         }
-
-        emit Claimed(current_stake.claimed_amount, block.timestamp);
     }
     
-    function _claimAndWithdraw(uint256 amount) internal
+    function _claimAndWithdraw(uint256 amount) internal isStaker(msg.sender)
     {
         uint256 user_index = stakes[msg.sender];
-        Stake storage current_stake = stakeholders[user_index].stake;
-        require(current_stake.amount >= amount, "Staking: Cannot withdraw more than you have staked");
+        Stake storage stake = stakeholders[user_index].stake;
+        require(stake.amount >= amount, "Staking: Cannot withdraw more than you have staked");
 
-        if (current_stake.claimed_time == 0)
+        if (stake.claimed_time == 0)
         {
-            current_stake.claimed_time = block.timestamp;
-            current_stake.amount -= amount;
-            current_stake.claimed_amount += amount;
-
+            stake.claimed_time = block.timestamp;
+            stake.amount -= amount;
+            stake.claimed_amount += amount;
+            stake.accumulated_reward += calculateStakeReward(stake.claimed_time, stake.start_time, stake.claimed_amount);
         }
-        emit Claimed(amount, block.timestamp);
     }
      
-    function getStakeSummary() external view returns(Stake memory) 
+    function getStakeSummary(address staker) external view isStaker(staker) returns(Stake memory) 
     {
-        uint256 user_index = stakes[msg.sender];
+        uint256 user_index = stakes[staker];
         return stakeholders[user_index].stake;
     }
-    
+
+    modifier isStaker(address staker)
+    {
+        require(stakes[staker] != 0, "Staking : No stakes from this user");
+        _;
+    }
 }

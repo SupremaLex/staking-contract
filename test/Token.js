@@ -1,6 +1,7 @@
 const { BigNumber } = require("@ethersproject/bignumber");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { exp } = require("prb-math");
 
 describe("Token contract", function ()
 {
@@ -109,8 +110,8 @@ describe("Token contract", function ()
       await hardhatToken.transfer(addr1.address, 500);
       await hardhatToken.connect(addr1).stake(300);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(300);
-      const stake = await hardhatToken.connect(addr1).getStakeSummary();
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(300);
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address);
       const amount = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       expect(amount).to.equal(300);
     });
@@ -120,9 +121,9 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(300);
       await hardhatToken.connect(addr1).stake(100);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(100);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(400);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(400);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const amount = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
 
       expect(amount).to.equal(400);
@@ -156,10 +157,10 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(300);
       await hardhatToken.connect(addr1).claim();
 
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(300);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(300);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(0);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
@@ -172,10 +173,10 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(300);
       await hardhatToken.connect(addr1).claimAndWithdraw(300);
 
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(300);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(300);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(0);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
@@ -188,10 +189,10 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(300);
       await hardhatToken.connect(addr1).claimAndWithdraw(150);
 
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(150);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(150);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
 
@@ -205,44 +206,25 @@ describe("Token contract", function ()
       await expect(hardhatToken.connect(addr1).claimAndWithdraw(301)).to.be.revertedWith("Staking: Cannot withdraw more than you have staked");
     });
 
-    it("Should try withdraw not claimed stake", async function () {
+    it("Should fail withdraw not claimed stake", async function () {
       await hardhatToken.transfer(addr1.address, 500);
       await hardhatToken.connect(addr1).stake(300);
-      await hardhatToken.connect(addr1).withdraw();
-
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(300);
-
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
-      const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-      const claimed = parseInt(Object.getOwnPropertyDescriptor(stake, "claimed_amount").value._hex);
-
-      expect(staked).to.equal(300);
-      expect(claimed).to.equal(0);
+      await expect(hardhatToken.connect(addr1).withdraw()).to.be.revertedWith("Staking : Can't withdraw unclaimed stake");
     });
 
-    it("Should try withdraw claimed but non-redeemable stake", async function () {
+    it("Should fail withdraw claimed but non-redeemable stake", async function () {
       await hardhatToken.transfer(addr1.address, 500);
       await hardhatToken.connect(addr1).stake(300);
       await hardhatToken.connect(addr1).claimAndWithdraw(150);
 
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(150);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(150);
 
       await ethers.provider.send('evm_increaseTime', [3600]); 
       await ethers.provider.send('evm_mine');
 
-      await hardhatToken.connect(addr1).withdraw();
-
-      expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(150);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
-
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
-      const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
-
-      expect(staked).to.equal(150);
+      await expect(hardhatToken.connect(addr1).withdraw()).to.be.revertedWith("Staking : Can't withdraw unclaimed stake");
     });
 
     it("Should withdraw part stake", async function () {
@@ -255,12 +237,12 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).claimAndWithdraw(150);
 
-      const stakeAfterClaim = await hardhatToken.connect(addr1).getStakeSummary()
+      const stakeAfterClaim = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const claimedTime = parseInt(Object.getOwnPropertyDescriptor(stakeAfterClaim, "claimed_time").value._hex);
 
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(200);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(150);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(150);
 
       await ethers.provider.send('evm_increaseTime', [86400]); 
       await ethers.provider.send('evm_mine');
@@ -269,10 +251,10 @@ describe("Token contract", function ()
 
       // reward 22(ceil(22.5))
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(372);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(150);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(150);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary()
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address)
       const staked = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       const since = parseInt(Object.getOwnPropertyDescriptor(stake, "start_time").value._hex);
 
@@ -286,7 +268,7 @@ describe("Token contract", function ()
       await hardhatToken.connect(addr1).stake(100);
       await hardhatToken.connect(addr1).stake(150);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary();
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address);
       const amount = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
 
       expect(amount).to.equal(300);
@@ -300,7 +282,7 @@ describe("Token contract", function ()
       await ethers.provider.send('evm_increaseTime', [86400]); 
       await ethers.provider.send('evm_mine');
 
-      const stakeAfterClaim = await hardhatToken.connect(addr1).getStakeSummary();
+      const stakeAfterClaim = await hardhatToken.connect(addr1).getStakeSummary(addr1.address);
       const amountAfterClaim = parseInt(Object.getOwnPropertyDescriptor(stakeAfterClaim, "amount").value._hex);
       const claimedAmountAfterClaim = parseInt(Object.getOwnPropertyDescriptor(stakeAfterClaim, "claimed_amount").value._hex);
 
@@ -312,10 +294,10 @@ describe("Token contract", function ()
       // reward 11(exact 11.25)
       expect(await hardhatToken.totalSupply()).to.equal(1011);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(286);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(225);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(225);
 
-      const stakeAfterWithdraw = await hardhatToken.connect(addr1).getStakeSummary();
+      const stakeAfterWithdraw = await hardhatToken.connect(addr1).getStakeSummary(addr1.address);
       const amountAfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stakeAfterWithdraw, "amount").value._hex);
       const claimedAmountAfterWithdraw = parseInt(Object.getOwnPropertyDescriptor(stakeAfterWithdraw, "claimed_amount").value._hex);
 
@@ -342,8 +324,8 @@ describe("Token contract", function ()
       // reward 37(exact 37.5)
       expect(await hardhatToken.totalSupply()).to.equal(1037);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(287);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(250);
+      expect(await hardhatToken.connect(addr1).claimedAmountOf(addr1.address)).to.equal(0);
+      expect(await hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.equal(250);
 
       // one more year stake of 250 tokens
       await ethers.provider.send('evm_increaseTime', [31536000]); 
@@ -359,8 +341,7 @@ describe("Token contract", function ()
       // reward 37(exact 37.5)
       expect(await hardhatToken.totalSupply()).to.equal(1074);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(574);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+      await expect(hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.be.revertedWith("Staking : No stakes from this user");
     });
 
     it("Should calculate 'inter staking' reward and withdraw it", async function () {
@@ -374,7 +355,7 @@ describe("Token contract", function ()
 
       await hardhatToken.connect(addr1).stake(100);
 
-      const stake = await hardhatToken.connect(addr1).getStakeSummary();
+      const stake = await hardhatToken.connect(addr1).getStakeSummary(addr1.address);
       const amount = parseInt(Object.getOwnPropertyDescriptor(stake, "amount").value._hex);
       const reward = parseInt(Object.getOwnPropertyDescriptor(stake, "accumulated_reward").value._hex);
 
@@ -395,8 +376,7 @@ describe("Token contract", function ()
       // reward 30
       expect(await hardhatToken.totalSupply()).to.equal(1045);
       expect(await hardhatToken.connect(addr1).balanceOf(addr1.address)).to.equal(545);
-      expect(await hardhatToken.connect(addr1).claimedBalanceOf(addr1.address)).to.equal(0);
-      expect(await hardhatToken.connect(addr1).lockedBalanceOf(addr1.address)).to.equal(0);
+      await expect(hardhatToken.connect(addr1).stakedAmountOf(addr1.address)).to.be.revertedWith("Staking : No stakes from this user");
     });
   });
 });

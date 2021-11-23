@@ -10,19 +10,13 @@ contract Token is Ownable, Stakeable
   uint8 private _decimals;
   string private _symbol;
   string private _name;
-
-  struct Balance
-  {
-      uint256 available;
-      uint256 claimed;
-      uint256 locked;
-  }
   
-  mapping (address => Balance) private _balances;
+  mapping (address => uint256) private _balances;
   mapping (address => mapping (address => uint256)) private _allowances;
 
   event Transfer(address indexed from, address indexed to, uint256 value);
   event Approval(address indexed owner, address indexed spender, uint256 value);
+  
 
   constructor(string memory token_name, string memory short_symbol, uint8 token_decimals, uint256 token_totalSupply)
   {
@@ -31,7 +25,7 @@ contract Token is Ownable, Stakeable
       _decimals = token_decimals;
       _totalSupply = token_totalSupply;
 
-      _balances[msg.sender].available = _totalSupply;
+      _balances[msg.sender] = _totalSupply;
 
       emit Transfer(address(0), msg.sender, _totalSupply);
   }
@@ -58,17 +52,17 @@ contract Token is Ownable, Stakeable
 
   function balanceOf(address account) external view returns (uint256)
   {
-    return _balances[account].available;
+    return _balances[account];
   }
   
-  function lockedBalanceOf(address account) external view returns (uint256)
+  function stakedAmountOf(address account) external view returns (uint256)
   {
-    return _balances[account].locked;
+    return this.getStakeSummary(account).amount;
   }
   
-  function claimedBalanceOf(address account) external view returns (uint256)
+  function claimedAmountOf(address account) external view returns (uint256)
   {
-    return _balances[account].claimed;
+    return this.getStakeSummary(account).claimed_amount;
   }
   
   function _mint(address account, uint256 amount) internal
@@ -76,7 +70,7 @@ contract Token is Ownable, Stakeable
     require(account != address(0), "Token: cannot mint to zero address");
 
     _totalSupply += amount;
-    _balances[account].available += amount;
+    _balances[account] += amount;
     emit Transfer(address(0), account, amount);
   }
 
@@ -96,10 +90,10 @@ contract Token is Ownable, Stakeable
   {
     require(sender != address(0), "Token: transfer from zero address");
     require(recipient != address(0), "Token: transfer to zero address");
-    require(_balances[sender].available >= amount, "Token: cant transfer more than your account holds");
+    require(_balances[sender] >= amount, "Token: cant transfer more than your account holds");
 
-    _balances[sender].available -= amount;
-    _balances[recipient].available += amount;
+    _balances[sender] -= amount;
+    _balances[recipient] += amount;
 
     emit Transfer(sender, recipient, amount);
   }
@@ -114,7 +108,6 @@ contract Token is Ownable, Stakeable
      _approve(msg.sender, spender, amount);
      return true;
    }
-
 
     function _approve(address owner, address spender, uint256 amount) internal
     {
@@ -135,32 +128,30 @@ contract Token is Ownable, Stakeable
     
     function stake(uint256 amount) external
     {
-      require(amount <= _balances[msg.sender].available, "Token: Cannot stake more than you own");
+      require(amount <= _balances[msg.sender], "Token: Cannot stake more than you own");
       _stake(amount);
-      _balances[msg.sender].available -= amount;
-      _balances[msg.sender].locked += amount;
+      _balances[msg.sender] -= amount;
+      emit Staked(msg.sender, amount, block.timestamp);
     }
     
     function claim() external
     {
-        _balances[msg.sender].claimed = _balances[msg.sender].locked;
-        _balances[msg.sender].locked = 0;
         _claim();
+        emit Claimed(this.claimedAmountOf(msg.sender), block.timestamp);
     }
     
     function claimAndWithdraw(uint amount) external
     {
         _claimAndWithdraw(amount);
-        _balances[msg.sender].claimed = amount;
-        _balances[msg.sender].locked -= amount;
+        emit Claimed(amount, block.timestamp);
     }
     
     function withdraw() external
     {
        (uint256 amount, uint256 reward) = _withdraw();
-      _balances[msg.sender].available += amount;
-      _balances[msg.sender].claimed -= amount;
-      _mint(msg.sender, reward / 1e18);
+      _balances[msg.sender] += amount;
+      _mint(msg.sender, reward / 10**(18 - _decimals));
+      emit Withdrawed(amount, reward, block.timestamp);
     }
 
 }
